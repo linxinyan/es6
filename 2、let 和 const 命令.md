@@ -22,300 +22,47 @@ for循环的计数器，就很合适使用let命令。
     // abc
 *这表明函数内部的变量i与循环变量i不在同一个作用域，有各自单独的作用域。
 ### 2、不存在变量提升
-var命令会发生“变量提升”现象，即变量可以在声明之前使用，值为undefined。这种现象多多少少是有些奇怪的，按照一般的逻辑，变量应该在声明语句之后才可以使用。
-
-为了纠正这种现象，let命令改变了语法行为，它所声明的变量一定要在声明后使用，否则报错。
-
-// var 的情况
-console.log(foo); // 输出undefined
-var foo = 2;
-
-// let 的情况
-console.log(bar); // 报错ReferenceError
-let bar = 2;
-上面代码中，变量foo用var命令声明，会发生变量提升，即脚本开始运行时，变量foo已经存在了，但是没有值，所以会输出undefined。变量bar用let命令声明，不会发生变量提升。这表示在声明它之前，变量bar是不存在的，这时如果用到它，就会抛出一个错误。
-
-暂时性死区
-只要块级作用域内存在let命令，它所声明的变量就“绑定”（binding）这个区域，不再受外部的影响。
-
-var tmp = 123;
-
-if (true) {
-  tmp = 'abc'; // ReferenceError
-  let tmp;
-}
-上面代码中，存在全局变量tmp，但是块级作用域内let又声明了一个局部变量tmp，导致后者绑定这个块级作用域，所以在let声明变量前，对tmp赋值会报错。
-
-ES6 明确规定，如果区块中存在let和const命令，这个区块对这些命令声明的变量，从一开始就形成了封闭作用域。凡是在声明之前就使用这些变量，就会报错。
-
-总之，在代码块内，使用let命令声明变量之前，该变量都是不可用的。这在语法上，称为“暂时性死区”（temporal dead zone，简称 TDZ）。
-
-if (true) {
-  // TDZ开始
-  tmp = 'abc'; // ReferenceError
-  console.log(tmp); // ReferenceError
-
-  let tmp; // TDZ结束
-  console.log(tmp); // undefined
-
-  tmp = 123;
-  console.log(tmp); // 123
-}
-上面代码中，在let命令声明变量tmp之前，都属于变量tmp的“死区”。
-
+let命令所声明的变量一定要在声明后使用，否则报错。
+### 3、暂时性死区
+只要块级作用域内存在let命令，它所声明的变量就“绑定”这个区域（形成了封闭作用域）。凡是在声明之前就使用这些变量，就会报错。称为“暂时性死区”（TDZ）。<br>
 “暂时性死区”也意味着typeof不再是一个百分之百安全的操作。
 
-typeof x; // ReferenceError
-let x;
-上面代码中，变量x使用let命令声明，所以在声明之前，都属于x的“死区”，只要用到该变量就会报错。因此，typeof运行时就会抛出一个ReferenceError。
+    typeof x; // ReferenceError
+    let x;  //变量x使用let命令声明，所以在声明之前，都属于x的“死区”，只要用到该变量就会报错。因此，typeof运行时就会抛出一个ReferenceError。
 
-作为比较，如果一个变量根本没有被声明，使用typeof反而不会报错。
+如果一个变量根本没有被声明，使用typeof反而不会报错。
 
-typeof undeclared_variable // "undefined"
-上面代码中，undeclared_variable是一个不存在的变量名，结果返回“undefined”。所以，在没有let之前，typeof运算符是百分之百安全的，永远不会报错。现在这一点不成立了。这样的设计是为了让大家养成良好的编程习惯，变量一定要在声明之后使用，否则就报错。
-
-有些“死区”比较隐蔽，不太容易发现。
-
-function bar(x = y, y = 2) {
-  return [x, y];
-}
-
-bar(); // 报错
-上面代码中，调用bar函数之所以报错（某些实现可能不报错），是因为参数x默认值等于另一个参数y，而此时y还没有声明，属于“死区”。如果y的默认值是x，就不会报错，因为此时x已经声明了。
-
-function bar(x = 2, y = x) {
-  return [x, y];
-}
-bar(); // [2, 2]
-另外，下面的代码也会报错，与var的行为不同。
-
-// 不报错
-var x = x;
-
-// 报错
-let x = x;
-// ReferenceError: x is not defined
-上面代码报错，也是因为暂时性死区。使用let声明变量时，只要变量在还没有声明完成前使用，就会报错。上面这行就属于这个情况，在变量x的声明语句还没有执行完成前，就去取x的值，导致报错”x 未定义“。
-
-ES6 规定暂时性死区和let、const语句不出现变量提升，主要是为了减少运行时错误，防止在变量声明前就使用这个变量，从而导致意料之外的行为。这样的错误在 ES5 是很常见的，现在有了这种规定，避免此类错误就很容易了。
-
-总之，暂时性死区的本质就是，只要一进入当前作用域，所要使用的变量就已经存在了，但是不可获取，只有等到声明变量的那一行代码出现，才可以获取和使用该变量。
-
+    typeof undeclared_variable // "undefined"
+*暂时性死区的本质就是，只要一进入当前作用域，所要使用的变量就已经存在了，但是不可获取，只有等到声明变量的那一行代码出现，才可以获取和使用该变量。
 不允许重复声明
-let不允许在相同作用域内，重复声明同一个变量。
+### 4、let不允许在相同作用域内，重复声明同一个变量。
 
-// 报错
-function func() {
-  let a = 10;
-  var a = 1;
-}
+    // 报错
+    function func() {
+        let a = 10;
+        var a = 1;
+    }
 
-// 报错
-function func() {
-  let a = 10;
-  let a = 1;
-}
+    // 报错
+    function func() {
+        let a = 10;
+        let a = 1;
+    }
 因此，不能在函数内部重新声明参数。
 
-function func(arg) {
-  let arg;
-}
-func() // 报错
+    function func(arg) {
+        let arg;
+    }
+    func() // 报错
 
-function func(arg) {
-  {
-    let arg;
-  }
-}
-func() // 不报错
-块级作用域
-为什么需要块级作用域？
-ES5 只有全局作用域和函数作用域，没有块级作用域，这带来很多不合理的场景。
-
-第一种场景，内层变量可能会覆盖外层变量。
-
-var tmp = new Date();
-
-function f() {
-  console.log(tmp);
-  if (false) {
-    var tmp = 'hello world';
-  }
-}
-
-f(); // undefined
-上面代码的原意是，if代码块的外部使用外层的tmp变量，内部使用内层的tmp变量。但是，函数f执行后，输出结果为undefined，原因在于变量提升，导致内层的tmp变量覆盖了外层的tmp变量。
-
-第二种场景，用来计数的循环变量泄露为全局变量。
-
-var s = 'hello';
-
-for (var i = 0; i < s.length; i++) {
-  console.log(s[i]);
-}
-
-console.log(i); // 5
-上面代码中，变量i只用来控制循环，但是循环结束后，它并没有消失，泄露成了全局变量。
-
-ES6 的块级作用域
-let实际上为 JavaScript 新增了块级作用域。
-
-function f1() {
-  let n = 5;
-  if (true) {
-    let n = 10;
-  }
-  console.log(n); // 5
-}
-上面的函数有两个代码块，都声明了变量n，运行后输出 5。这表示外层代码块不受内层代码块的影响。如果两次都使用var定义变量n，最后输出的值才是 10。
-
-ES6 允许块级作用域的任意嵌套。
-
-{{{{
-  {let insane = 'Hello World'}
-  console.log(insane); // 报错
-}}}};
-上面代码使用了一个五层的块级作用域，每一层都是一个单独的作用域。第四层作用域无法读取第五层作用域的内部变量。
-
-内层作用域可以定义外层作用域的同名变量。
-
-{{{{
-  let insane = 'Hello World';
-  {let insane = 'Hello World'}
-}}}};
-块级作用域的出现，实际上使得获得广泛应用的匿名立即执行函数表达式（匿名 IIFE）不再必要了。
-
-// IIFE 写法
-(function () {
-  var tmp = ...;
-  ...
-}());
-
-// 块级作用域写法
-{
-  let tmp = ...;
-  ...
-}
-块级作用域与函数声明
-函数能不能在块级作用域之中声明？这是一个相当令人混淆的问题。
-
-ES5 规定，函数只能在顶层作用域和函数作用域之中声明，不能在块级作用域声明。
-
-// 情况一
-if (true) {
-  function f() {}
-}
-
-// 情况二
-try {
-  function f() {}
-} catch(e) {
-  // ...
-}
-上面两种函数声明，根据 ES5 的规定都是非法的。
-
-但是，浏览器没有遵守这个规定，为了兼容以前的旧代码，还是支持在块级作用域之中声明函数，因此上面两种情况实际都能运行，不会报错。
-
-ES6 引入了块级作用域，明确允许在块级作用域之中声明函数。ES6 规定，块级作用域之中，函数声明语句的行为类似于let，在块级作用域之外不可引用。
-
-function f() { console.log('I am outside!'); }
-
-(function () {
-  if (false) {
-    // 重复声明一次函数f
-    function f() { console.log('I am inside!'); }
-  }
-
-  f();
-}());
-上面代码在 ES5 中运行，会得到“I am inside!”，因为在if内声明的函数f会被提升到函数头部，实际运行的代码如下。
-
-// ES5 环境
-function f() { console.log('I am outside!'); }
-
-(function () {
-  function f() { console.log('I am inside!'); }
-  if (false) {
-  }
-  f();
-}());
-ES6 就完全不一样了，理论上会得到“I am outside!”。因为块级作用域内声明的函数类似于let，对作用域之外没有影响。但是，如果你真的在 ES6 浏览器中运行一下上面的代码，是会报错的，这是为什么呢？
-
-// 浏览器的 ES6 环境
-function f() { console.log('I am outside!'); }
-
-(function () {
-  if (false) {
-    // 重复声明一次函数f
-    function f() { console.log('I am inside!'); }
-  }
-
-  f();
-}());
-// Uncaught TypeError: f is not a function
-上面的代码在 ES6 浏览器中，都会报错。
-
-原来，如果改变了块级作用域内声明的函数的处理规则，显然会对老代码产生很大影响。为了减轻因此产生的不兼容问题，ES6 在附录 B里面规定，浏览器的实现可以不遵守上面的规定，有自己的行为方式。
-
-允许在块级作用域内声明函数。
-函数声明类似于var，即会提升到全局作用域或函数作用域的头部。
-同时，函数声明还会提升到所在的块级作用域的头部。
-注意，上面三条规则只对 ES6 的浏览器实现有效，其他环境的实现不用遵守，还是将块级作用域的函数声明当作let处理。
-
-根据这三条规则，浏览器的 ES6 环境中，块级作用域内声明的函数，行为类似于var声明的变量。上面的例子实际运行的代码如下。
-
-// 浏览器的 ES6 环境
-function f() { console.log('I am outside!'); }
-(function () {
-  var f = undefined;
-  if (false) {
-    function f() { console.log('I am inside!'); }
-  }
-
-  f();
-}());
-// Uncaught TypeError: f is not a function
-考虑到环境导致的行为差异太大，应该避免在块级作用域内声明函数。如果确实需要，也应该写成函数表达式，而不是函数声明语句。
-
-// 块级作用域内部的函数声明语句，建议不要使用
-{
-  let a = 'secret';
-  function f() {
-    return a;
-  }
-}
-
-// 块级作用域内部，优先使用函数表达式
-{
-  let a = 'secret';
-  let f = function () {
-    return a;
-  };
-}
-另外，还有一个需要注意的地方。ES6 的块级作用域必须有大括号，如果没有大括号，JavaScript 引擎就认为不存在块级作用域。
-
-// 第一种写法，报错
-if (true) let x = 1;
-
-// 第二种写法，不报错
-if (true) {
-  let x = 1;
-}
-上面代码中，第一种写法没有大括号，所以不存在块级作用域，而let只能出现在当前作用域的顶层，所以报错。第二种写法有大括号，所以块级作用域成立。
-
-函数声明也是如此，严格模式下，函数只能声明在当前作用域的顶层。
-
-// 不报错
-'use strict';
-if (true) {
-  function f() {}
-}
-
-// 报错
-'use strict';
-if (true)
-  function f() {}
-const 命令
+    function func(arg) {
+    {
+        let arg;
+    }
+    }
+    func() // 不报错
+## 二、const 命令
+<hr>
 基本用法
 const声明一个只读的常量。一旦声明，常量的值就不能改变。
 
