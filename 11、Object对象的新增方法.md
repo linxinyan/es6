@@ -176,5 +176,54 @@ Object.setPrototypeOf(obj, proto);   //将proto对象设为obj对象的原型，
 由于undefined和null无法转为对象，所以如果第一个参数是undefined或null，就会报错。<br>
 
 Object.getPrototypeOf(obj);  //读取obj对象的原型对象 <br>
-如果参数不是对象，会被自动转为对象。如果参数是undefined或null，它们无法转为对象，所以会报错。<br>
+如果参数不是对象，会被自动转为对象。如果参数是undefined或null，它们无法转为对象，所以会报错。
+## 五、Object.keys()，Object.values()，Object.entries()
+（1）Object.keys()  返回一个数组，成员是参数对象自身的（不含继承的）所有可遍历（enumerable）属性的`键名`。<br>
 
+（2）Object.values()  返回一个数组，成员是参数对象自身的（不含继承的）所有可遍历（enumerable）属性的`键值`。<br>
+Object.values方法会过滤属性名为 Symbol 值的属性。<br>
+如果Object.values方法的参数是一个字符串，会返回各个字符组成的一个数组。 <br>
+如果参数不是对象，Object.values会先将其转为对象。由于数值和布尔值的包装对象，都不会为实例添加非继承的属性。所以，Object.values会返回空数组。<br>
+
+（3）Object.entries()方法返回一个数组，成员是参数对象自身的（不含继承的）所有可遍历（enumerable）属性的`键值对数组`。
+
+    const obj = { foo: 'bar', baz: 42 };
+    Object.entries(obj)
+    // [ ["foo", "bar"], ["baz", 42] ]
+除了返回值不一样，该方法的行为与Object.values基本一致。<br>
+
+Object.entries的基本用途是遍历对象的属性。<br>
+Object.entries方法的另一个用处是，将对象转为真正的Map结构。
+
+    const obj = { foo: 'bar', baz: 42 };
+    const map = new Map(Object.entries(obj));
+    map // Map { foo: "bar", baz: 42 }
+六、Object.fromEntries()
+Object.fromEntries()方法是Object.entries()的逆操作，用于将一个键值对数组转为对象。
+
+    Object.fromEntries([
+      ['foo', 'bar'],
+      ['baz', 42]
+    ])
+    // { foo: "bar", baz: 42 }
+
+用途：<br>
+（1）由于方法的主要目的，是将键值对的数据结构还原为对象，因此特别适合将 Map 结构转为对象。
+
+    // 例一
+    const entries = new Map([
+      ['foo', 'bar'],
+      ['baz', 42]
+    ]);
+
+    Object.fromEntries(entries)
+    // { foo: "bar", baz: 42 }
+
+    // 例二
+    const map = new Map().set('foo', true).set('bar', false);
+    Object.fromEntries(map)
+    // { foo: true, bar: false }
+（2）配合URLSearchParams对象，将查询字符串转为对象。
+
+    Object.fromEntries(new URLSearchParams('foo=bar&baz=qux'))
+    // { foo: "bar", baz: "qux" }
