@@ -74,3 +74,107 @@ Object.assign()只能进行值的复制，如果要复制的值是一个取值�
 （4）合并多个对象<br>
 （5）为属性指定默认值<br>
 注意默认值为对象时可能存在的浅拷贝问题
+## 三、Object.getOwnPropertyDescriptors()
+ES5 的Object.getOwnPropertyDescriptor()方法会返回某个对象属性的描述对象（descriptor）。ES2017 引入了Object.getOwnPropertyDescriptors()方法，返回指定对象`所有`自身属性（非继承属性）的描述对象，如果没有任何自身属性，则返回空对象
+
+    Object.getOwnPropertyDescriptor(obj, prop);  //prop是目标对象内属性名称
+    Object. getOwnPropertyDescriptors(obj);
+用途：<br>
+（1）解决Object.assign()无法正确拷贝get属性和set属性的问题。<br>
+Object.getOwnPropertyDescriptors()方法配合Object.defineProperties()方法，就可以实现正确拷贝。<br>
+
+    Object.defineProperties()方法是创建/修改/获取属性的方法，该方法直接在一个对象上定义一个或多个新的属性或修改现有属性，并返回该对象
+
+    Object.defineProperties(obj, props)
+    obj: 将要被添加属性或修改属性的对象
+    props: 该对象的一个或多个键值对（对象形式），定义了将要为对象添加或修改的属性的具体配置
+
+    const source = {
+      set foo(value) {
+        console.log(value);
+      }
+    };
+
+    const target2 = {};
+    Object.defineProperties(target2, Object.getOwnPropertyDescriptors(source));   //将source所有自身属性的描述对象添加到target2到对象中
+    Object.getOwnPropertyDescriptor(target2, 'foo')  //返回target2对象的foo属性的描述对象
+    // { get: undefined,
+    //   set: [Function: set foo],
+    //   enumerable: true,
+    //   configurable: true }
+
+（2）配合Object.create()方法，将对象属性克隆到一个新对象（浅拷贝）
+
+    Object.create(proto, [ propertiesObject ])  创建一个拥有指定原型的对象，并为该原型对象设置属性
+
+    const clone = Object.create(Object.getPrototypeOf(obj),  
+      Object.getOwnPropertyDescriptors(obj));  
+    //把obj对象的所有自身属性的描述对象添加到obj的原型对象上。这样clone就拥有了obj所有自身和其继承的属性了
+
+    // 或者
+
+    const shallowClone = (obj) => Object.create(
+      Object.getPrototypeOf(obj),
+      Object.getOwnPropertyDescriptors(obj)
+    );
+（3）实现一个对象继承另一个对象<br>
+以前，继承另一个对象，常常写成下面这样
+
+    const obj = {
+      __proto__: prot,
+      foo: 123,
+    };
+如果不用__proto__，上面代码就要改成下面这样。
+
+    const obj = Object.create(prot);
+    obj.foo = 123;
+
+    // 或者
+
+    const obj = Object.assign(
+      Object.create(prot),
+      {
+        foo: 123,
+      }
+    );
+有了Object.getOwnPropertyDescriptors()，我们就有了另一种写法。
+
+    const obj = Object.create(
+      prot,
+      Object.getOwnPropertyDescriptors({
+        foo: 123,
+      })
+    );
+（4）实现 Mixin（混入）模式。
+
+    let mix = (object) => ({
+      with: (...mixins) => mixins.reduce(
+        (c, mixin) => Object.create(
+          c, Object.getOwnPropertyDescriptors(mixin)
+        ), object)
+    });
+
+    // multiple mixins example
+    let a = {a: 'a'};
+    let b = {b: 'b'};
+    let c = {c: 'c'};
+    let d = mix(c).with(a, b);
+
+    d.c // "c"
+    d.b // "b"
+    d.a // "a"
+上面代码返回一个新的对象d，代表了对象a和b被混入了对象c的操作。
+## 四、__proto__属性，Object.setPrototypeOf()，Object.getPrototypeOf()
+__proto__属性存储了当前对象的原型对象<br>
+
+    Object.prototype.__proto__  //读取原型对象
+由于这是内部属性，所以最好不要直接调用它。可通过以下方法对原型对象进行操作：<br>
+Object.setPrototypeOf()（写操作）、Object.getPrototypeOf()（读操作）、Object.create()（生成操作）。<br>
+
+Object.setPrototypeOf(obj, proto);   //将proto对象设为obj对象的原型，并返回第一个参数obj对象<br>
+如果第一个参数不是对象，会自动转为对象。但是由于返回的还是第一个参数，所以这个操作不会产生任何效果。<br>
+由于undefined和null无法转为对象，所以如果第一个参数是undefined或null，就会报错。<br>
+
+Object.getPrototypeOf(obj);  //读取obj对象的原型对象 <br>
+如果参数不是对象，会被自动转为对象。如果参数是undefined或null，它们无法转为对象，所以会报错。<br>
+
