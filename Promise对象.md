@@ -14,6 +14,7 @@
 #### 4、`如果某些事件不断地反复发生，一般来说，使用 Stream 模式是比部署Promise更好的选择。`
 
 ## 二、基本用法
+### 1、Promise构造函数
 ES6 规定，`Promise对象是一个构造函数`，用来生成Promise实例。
 
     const promise = new Promise(function(resolve, reject) {
@@ -28,8 +29,8 @@ ES6 规定，`Promise对象是一个构造函数`，用来生成Promise实例。
 Promise构造函数接受一个`函数作为参数`，该函数的两个参数分别是resolve和reject。它们是两个`函数`，由 JavaScript 引擎提供，不用自己部署。<br>
 
 resolve函数的作用是，将Promise对象的状态从“未完成”变为“成功”（即 pending -> resolved），在异步操作`成功`时调用，并`将异步操作的结果，作为参数传递出去`。<br>
-reject函数的作用是，将Promise对象的状态从“未完成”变为“失败”（即 pending -> rejected），在异步操作`失败`时调用，并`将异步操作报出的错误，作为参数传递出去`。<br>
-
+reject函数的作用是，将Promise对象的状态从“未完成”变为“失败”（即 pending -> rejected），在异步操作`失败`时调用，并`将异步操作报出的错误，作为参数传递出去`。
+### 2、then方法
 Promise实例生成以后，可以用then方法分别指定resolved状态和rejected状态的回调函数。
 
     promise.then(function(value) {  //value：promise对象异步操作成功的结果
@@ -52,3 +53,56 @@ then方法可以接受两个`回调函数`作为参数。第一个回调函数�
       console.log(value);
     });
 上面代码中，timeout方法返回一个Promise实例，表示一段时间以后才会发生的结果。过了指定的时间（ms参数）以后，Promise实例的状态变为resolved，就会触发then方法绑定的回调函数。
+### 3、Promise 新建后就会立即执行
+    let promise = new Promise(function(resolve, reject) {
+      console.log('Promise');
+      resolve();
+    });
+
+    promise.then(function() {
+      console.log('resolved.');
+    });
+
+    console.log('Hi!');
+
+    // Promise   Promise 新建后立即执行，所以首先输出的是Promise
+    // Hi!
+    // resolved  then方法指定的回调函数，将在当前脚本所有同步任务执行完才会执行，所以resolved最后输出。
+### 4、resolve函数和reject函数带有参数
+如果调用resolve函数和reject函数时带有参数，那么它们的参数会被传递给回调函数。reject函数的参数通常是Error对象的实例，表示抛出的错误；`resolve函数的参数除了正常的值以外，还可能是另一个 Promise 实例`，比如像下面这样。
+
+    const p1 = new Promise(function (resolve, reject) {
+      // ...
+    });
+
+    const p2 = new Promise(function (resolve, reject) {
+      // ...
+      resolve(p1);  //p2返回p1的结果
+    })
+`一个异步操作的结果是返回另一个异步操作`
+注意，这时p1的状态就会传递给p2，也就是说，`p1的状态决定了p2的状态`。如果p1的状态是pending，那么p2的回调函数就会等待p1的状态改变；如果p1的状态已经是resolved或者rejected，那么p2的回调函数将会立刻执行。
+## 三、Promise.prototype.then()
+它的作用是为 Promise 实例添加状态改变时的回调函数。then方法的第一个参数是resolved状态的回调函数，第二个参数是rejected状态的回调函数，`它们都是可选的`。<br>
+
+then方法返回的是一个`新的Promise实例`（注意，不是原来那个Promise实例）。因此可以采用链式写法，即then方法后面再调用另一个then方法。<br>
+
+采用链式的then，可以指定一组按照次序调用的回调函数。这时，前一个回调函数，有可能返回的还是一个Promise对象（即有异步操作），这时后一个回调函数，就会等待该Promise对象的状态发生变化，才会被调用。
+
+    getJSON("/post/1.json").then(function(post) {
+      return getJSON(post.commentURL);
+    }).then(function (comments) {
+      console.log("resolved: ", comments);
+    }, function (err){
+      console.log("rejected: ", err);
+    });
+上面代码中，第一个then方法指定的回调函数，返回的是另一个Promise对象。这时，第二个then方法指定的回调函数，就会等待这个新的Promise对象状态发生变化。如果变为resolved，就调用第一个回调函数，如果状态变为rejected，就调用第二个回调函数。<br>
+
+如果采用箭头函数，上面的代码可以写得更简洁。
+
+    getJSON("/post/1.json").then(
+      post => getJSON(post.commentURL)
+    ).then(
+      comments => console.log("resolved: ", comments),
+      err => console.log("rejected: ", err)
+    );
+
