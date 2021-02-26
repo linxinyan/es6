@@ -105,4 +105,126 @@ then方法返回的是一个`新的Promise实例`（注意，不是原来那个P
       comments => console.log("resolved: ", comments),
       err => console.log("rejected: ", err)
     );
+    
+1、finally方法总是会返回原来的值。<br>
+2、catch方法，该方法返回的是一个新的 Promise 实例
 
+## 六、Promise.all()
+Promise.all()方法用于将多个 Promise 实例，包装成一个新的 Promise 实例。
+
+    const p = Promise.all([p1, p2, p3]);
+上面代码中，Promise.all()方法接受一个数组作为参数，p1、p2、p3都是 Promise 实例，如果不是，就会先调用下面讲到的Promise.resolve方法，将参数转为 Promise 实例，再进一步处理。另外，Promise.all()方法的参数可以不是数组，但必须具有 Iterator 接口，且返回的每个成员都是 Promise 实例。
+
+    p的状态由p1、p2、p3决定，分成两种情况。
+
+    （1）只有p1、p2、p3的状态都变成fulfilled，p的状态才会变成fulfilled，此时p1、p2、p3的返回值组成一个数组，传递给p的回调函数。
+
+    （2）只要p1、p2、p3之中有一个被rejected，p的状态就变成rejected，此时第一个被reject的实例的返回值，会传递给p的回调函数。
+## 七、Promise.race()
+Promise.race()方法同样是将多个 Promise 实例，包装成一个新的 Promise 实例。
+
+    const p = Promise.race([p1, p2, p3]);
+上面代码中，`只要p1、p2、p3之中有一个实例率先改变状态，p的状态就跟着改变。那个率先改变的 Promise 实例的返回值，就传递给p的回调函数。`<br>
+
+`Promise.race()方法的参数与Promise.all()方法一样，如果不是 Promise 实例，就会先调用Promise.resolve()方法，将参数转为 Promise 实例，再进一步处理。`<br>
+
+## 八、Promise.allSettled()
+Promise.allSettled()方法接受一组 Promise 实例作为参数，包装成一个新的 Promise 实例。只有等到`所有`这些参数实例都返回结果，`不管是fulfilled还是rejected`，包装实例才会结束。<br>
+
+`该方法返回的新的 Promise 实例，一旦结束，状态总是fulfilled，`不会变成rejected。状态变成fulfilled后，Promise 的监听函数接收到的参数是一个`数组`，每个成员对应一个传入Promise.allSettled()的 Promise 实例。<br>
+
+    const resolved = Promise.resolve(42);
+    const rejected = Promise.reject(-1);
+
+    const allSettledPromise = Promise.allSettled([resolved, rejected]); 
+     //该方法返回的新的 Promise 实例（即allSettledPromise），状态只能是fulfilled
+
+    allSettledPromise.then(function (results) {
+      console.log(results);
+      //Promise 的监听函数接收到的参数是一个数组，每个成员对应一个传入Promise.allSettled()的 Promise 实例
+    });
+    // [
+    //    { status: 'fulfilled', value: 42 },
+    //    { status: 'rejected', reason: -1 }
+    //每个对象都有status属性，该属性的值只可能是字符串fulfilled或字符串rejected。
+    //fulfilled时，对象有value属性，rejected时有reason属性，对应两种状态的返回值。
+    // ]
+
+有时候，我们不关心异步操作的结果，只关心`这些操作有没有结束`。这时，`Promise.allSettled()方法`就很有用。如果没有这个方法，想要确保所有操作都结束，就很麻烦
+## 九、Promise.any()
+ES2021 引入了Promise.any()方法。该方法接受一组 Promise 实例作为参数，包装成一个新的 Promise 实例返回。只要参数实例有一个变成fulfilled状态，包装实例就会变成fulfilled状态；如果所有参数实例都变成rejected状态，包装实例就会变成rejected状态。<br>
+
+Promise.any()跟Promise.race()方法很像，只有一点不同，就是不会因为某个 Promise 变成rejected状态而结束。<br>
+
+Promise.any()抛出的错误，不是一个一般的错误，而是一个 AggregateError 实例。它相当于一个数组，每个成员对应一个被rejected的操作所抛出的错误。
+十、Promise.resolve()
+将现有对象转为 Promise 对象
+
+    Promise.resolve('foo')
+    // 等价于
+    new Promise(resolve => resolve('foo'))
+Promise.resolve()方法的参数分成四种情况。<br>
+（1）参数是一个 Promise 实例 <br>
+如果参数是 Promise 实例，那么Promise.resolve将不做任何修改、原封不动地返回这个实例。 <br>
+（2）参数是一个thenable对象 <br>
+thenable对象指的是具有then方法的对象，比如下面这个对象。
+
+    let thenable = {
+      then: function(resolve, reject) {
+        resolve(42);
+      }
+    };
+Promise.resolve()方法会将这个对象转为 Promise 对象，执行Promise 对象的then()方法就会执行thenable对象的then()方法。<br>
+（3）参数不是具有then()方法的对象，或根本就不是对象 <br>
+如果参数是一个原始值，或者是一个不具有then()方法的对象，则Promise.resolve()方法返回一个新的 Promise 对象，`状态为resolved`。
+
+    const p = Promise.resolve('Hello');
+
+    p.then(function (s) {
+      console.log(s)
+    });
+    // Hello
+由于字符串Hello不属于异步操作（`判断方法是字符串对象不具有 then 方法`），返回 Promise 实例的状态从一生成就是resolved，所以回调函数会立即执行。Promise.resolve()方法的参数，会同时传给回调函数。<br>
+（4）不带有任何参数 <br>
+Promise.resolve()方法允许调用时不带参数，直接返回一个resolved状态的 Promise 对象。所以，如果希望得到一个 Promise 对象，比较方便的方法就是直接调用Promise.resolve()方法。
+需要注意的是，`立即resolve()的 Promise 对象，是在本轮“事件循环”（event loop）的结束时执行，而不是在下一轮“事件循环”的开始时。`<br>
+
+    setTimeout(function () {
+      console.log('three');
+    }, 0);
+
+    Promise.resolve().then(function () {
+      console.log('two');
+    });
+
+    console.log('one');
+
+    // one
+    // two
+    // three
+上面代码中，setTimeout(fn, 0)在下一轮“事件循环”开始时执行，Promise.resolve()在本轮“事件循环”结束时执行，console.log('one')则是立即执行，因此最先输出。
+## 十一、Promise.reject()
+Promise.reject(reason)方法会返回一个新的 Promise 实例，该实例的状态为rejected。reason参数作为reject的理由，变成后续方法的参数。
+
+    Promise.reject('出错了')
+    .catch(e => {
+      console.log(e === '出错了')
+    })
+    // true
+上面代码中，Promise.reject()方法的参数是一个字符串，`后面catch()方法的参数e就是这个字符串（reason参数）`。
+## 十二、应用
+### 1、加载图片
+我们可以将图片的加载写成一个Promise，一旦加载完成，Promise的状态就发生变化。
+
+    const preloadImage = function (path) {
+      return new Promise(function (resolve, reject) {
+        const image = new Image();
+        image.onload  = resolve;
+        image.onerror = reject;
+        image.src = path;
+      });
+    };
+### 2、Generator 函数与 Promise 的结合
+使用 Generator 函数管理流程，遇到异步操作的时候，通常返回一个Promise对象。
+## 十三、Promise.try()
+事实上，Promise.try就是模拟try代码块，就像promise.catch模拟的是catch代码块。
